@@ -1,5 +1,6 @@
 # 个人强制直连规则；不会被上游同步覆盖。
 # 添加示例：- DOMAIN,nas.example.com
 payload:
+  - IP-CIDR,192.168.5.0/24,no-resolve
   - IP-CIDR,192.168.5.13/32,no-resolve
   - IP-CIDR,192.168.5.33/32,no-resolve
