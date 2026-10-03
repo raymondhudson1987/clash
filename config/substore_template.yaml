@@ -12,20 +12,13 @@ mode: rule
 log-level: info
 ipv6: false
 external-controller: 0.0.0.0:9090
-# secret: "your-secret-here"
+# secret: 请通过私有 Sub-Store 处理步骤注入管理密钥，不要提交到公开仓库。
 
-# TUN 设置（虚拟网卡模式，全局模式需要）
+# 显式 HTTP/SOCKS 代理入口；host 和独立 IP 实例均不接管系统路由。
 tun:
-  enable: true
-  stack: mixed
-  auto-route: true
-  auto-redirect: false
-  auto-detect-interface: true
-  dns-hijack:
-    - any:53
-  mtu: 1500
+  enable: false
 
-# DNS 设置（TUN + 全局模式专用配置）
+# DNS：节点域名使用独立解析器，内网域名需按实际内部 DNS 配置。
 dns:
   enable: true
   ipv6: false
@@ -60,9 +53,17 @@ dns:
 # ==========================================
 
 # ==========================================
-# 策略组 - 链式代理架构
+# 策略组 - 保留现有节点名称兼容；组名本身不会创建链式代理
 # ==========================================
 proxy-groups:
+  # 首次加载前确认组内至少有一个可用节点；下载不依赖远程规则匹配。
+  - name: 规则更新
+    type: select
+    proxies:
+      - 极速美国
+      - 极速日本
+      - DIRECT
+
   # ====================
   # 线路节点池（直连中转，非链式）
   # ====================
@@ -72,7 +73,7 @@ proxy-groups:
     type: url-test
     include-all-proxies: true
     filter: '(?i)^\[Line\].*(JP|日本)'
-    url: http://cp.cloudflare.com/generate_204
+    url: https://www.gstatic.com/generate_204
     interval: 300
     tolerance: 50
 
@@ -81,7 +82,7 @@ proxy-groups:
     type: url-test
     include-all-proxies: true
     filter: '(?i)^\[Line\].*(US|美国)'
-    url: http://cp.cloudflare.com/generate_204
+    url: https://www.gstatic.com/generate_204
     interval: 300
     tolerance: 50
 
@@ -93,7 +94,7 @@ proxy-groups:
     icon: https://testingcf.jsdelivr.net/gh/shindgewongxj/WHATSINStash@master/icon/select.png
 
   # ====================
-  # 地区落地组（链式节点，已由 Sub-Store 处理好）
+  # 地区组：实际路径由节点参数和 Flux 决定；已有 Flux 转发不要重复套链
   # ====================
 
   # 日本落地链式节点 + 日本线路
@@ -115,7 +116,7 @@ proxy-groups:
     type: url-test
     include-all-proxies: true
     filter: '(?i)\[Landing\].*🇭🇰'
-    url: http://cp.cloudflare.com/generate_204
+    url: https://www.gstatic.com/generate_204
     interval: 300
     tolerance: 100
     icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Hong_Kong.png
@@ -125,7 +126,7 @@ proxy-groups:
     type: url-test
     include-all-proxies: true
     filter: '(?i)\[Landing\].*🇹🇼'
-    url: http://cp.cloudflare.com/generate_204
+    url: https://www.gstatic.com/generate_204
     interval: 300
     tolerance: 100
     icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Taiwan.png
@@ -136,7 +137,7 @@ proxy-groups:
     include-all-proxies: true
     filter: '(?i)\[Landing\]'
     exclude-filter: '(?i)(🇯🇵|🇺🇸|🇭🇰|🇹🇼)'
-    url: http://cp.cloudflare.com/generate_204
+    url: https://www.gstatic.com/generate_204
     interval: 300
     tolerance: 100
     icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Global.png
@@ -149,8 +150,8 @@ proxy-groups:
     type: select
     icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Proxy.png
     proxies:
-      - 极速日本
       - 极速美国
+      - 极速日本
       - 极速全球
       - 极速香港
       - 极速台湾
@@ -292,7 +293,6 @@ proxy-groups:
     type: select
     proxies:
       - DIRECT
-      - 节点选择
 
   - name: 广告拦截
     icon: https://testingcf.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/AdBlack.png
@@ -344,299 +344,356 @@ proxy-groups:
 # 规则提供者
 # ==========================================
 rule-providers:
+  PersonalDirect:
+    type: http
+    behavior: classical
+    format: yaml
+    url: https://raw.githubusercontent.com/raymondhudson1987/clash/main/custom/direct.yaml
+    path: ./ruleset/personal-direct.yaml
+    interval: 3600
+    proxy: 规则更新
   Advertising:
-    url: https://raw.githubusercontent.com/holddyxu/clash/refs/heads/main/list/Advertising/Advertising_No_Resolve.yaml
+    url: https://raw.githubusercontent.com/raymondhudson1987/clash/main/list/Advertising/Advertising_No_Resolve.yaml
     path: ./ruleset/Advertising_No_Resolve.yaml
     behavior: classical
     interval: 86400
     type: http
+    proxy: 规则更新
   AdvertisingDomain:
-    url: https://raw.githubusercontent.com/holddyxu/clash/refs/heads/main/list/Advertising/Advertising_Domain.yaml
+    url: https://raw.githubusercontent.com/raymondhudson1987/clash/main/list/Advertising/Advertising_Domain.yaml
     path: ./ruleset/Advertising_Domain.yaml
     behavior: domain
     interval: 86400
     type: http
+    proxy: 规则更新
 
   Google:
-    url: https://raw.githubusercontent.com/holddyxu/clash/refs/heads/main/list/Google/Google_No_Resolve.yaml
+    url: https://raw.githubusercontent.com/raymondhudson1987/clash/main/list/Google/Google_No_Resolve.yaml
     path: ./ruleset/Google_No_Resolve.yaml
     behavior: classical
     interval: 86400
     type: http
+    proxy: 规则更新
 
   SteamCN:
-    url: https://raw.githubusercontent.com/holddyxu/clash/refs/heads/main/list/SteamCN/SteamCN_No_Resolve.yaml
+    url: https://raw.githubusercontent.com/raymondhudson1987/clash/main/list/SteamCN/SteamCN_No_Resolve.yaml
     path: ./ruleset/SteamCN_No_Resolve.yaml
     behavior: classical
     interval: 86400
     type: http
+    proxy: 规则更新
 
   OneDrive:
-    url: https://raw.githubusercontent.com/holddyxu/clash/refs/heads/main/list/OneDrive/OneDrive_No_Resolve.yaml
+    url: https://raw.githubusercontent.com/raymondhudson1987/clash/main/list/OneDrive/OneDrive_No_Resolve.yaml
     path: ./ruleset/OneDrive_No_Resolve.yaml
     behavior: classical
     interval: 86400
     type: http
+    proxy: 规则更新
 
   Microsoft:
-    url: https://raw.githubusercontent.com/holddyxu/clash/refs/heads/main/list/Microsoft/Microsoft_No_Resolve.yaml
+    url: https://raw.githubusercontent.com/raymondhudson1987/clash/main/list/Microsoft/Microsoft_No_Resolve.yaml
     path: ./ruleset/Microsoft_No_Resolve.yaml
     behavior: classical
     interval: 86400
     type: http
+    proxy: 规则更新
 
   Apple:
-    url: https://raw.githubusercontent.com/holddyxu/clash/refs/heads/main/list/Apple/Apple_No_Resolve.yaml
+    url: https://raw.githubusercontent.com/raymondhudson1987/clash/main/list/Apple/Apple_No_Resolve.yaml
     path: ./ruleset/Apple_No_Resolve.yaml
     behavior: classical
     interval: 86400
     type: http
+    proxy: 规则更新
   Apple_Domain:
-    url: https://raw.githubusercontent.com/holddyxu/clash/refs/heads/main/list/Apple/Apple_Domain.yaml
+    url: https://raw.githubusercontent.com/raymondhudson1987/clash/main/list/Apple/Apple_Domain.yaml
     path: ./ruleset/Apple_Domain.yaml
     behavior: domain
     interval: 86400
     type: http
+    proxy: 规则更新
 
   Telegram:
-    url: https://raw.githubusercontent.com/holddyxu/clash/refs/heads/main/list/Telegram/Telegram_No_Resolve.yaml
+    url: https://raw.githubusercontent.com/raymondhudson1987/clash/main/list/Telegram/Telegram_No_Resolve.yaml
     path: ./ruleset/Telegram_No_Resolve.yaml
     behavior: classical
     interval: 86400
     type: http
+    proxy: 规则更新
 
   OpenAI:
-    url: https://raw.githubusercontent.com/holddyxu/clash/refs/heads/main/list/OpenAI/OpenAI_No_Resolve.yaml
+    url: https://raw.githubusercontent.com/raymondhudson1987/clash/main/list/OpenAI/OpenAI_No_Resolve.yaml
     path: ./ruleset/OpenAI_No_Resolve.yaml
     behavior: classical
     interval: 86400
     type: http
+    proxy: 规则更新
 
   Copilot:
-    url: https://raw.githubusercontent.com/holddyxu/clash/refs/heads/main/list/Copilot/Copilot_No_Resolve.yaml
+    url: https://raw.githubusercontent.com/raymondhudson1987/clash/main/list/Copilot/Copilot_No_Resolve.yaml
     path: ./ruleset/Copilot_No_Resolve.yaml
     behavior: classical
     interval: 86400
     type: http
+    proxy: 规则更新
 
   Claude:
-    url: https://raw.githubusercontent.com/holddyxu/clash/refs/heads/main/list/Claude/Claude_No_Resolve.yaml
+    url: https://raw.githubusercontent.com/raymondhudson1987/clash/main/list/Claude/Claude_No_Resolve.yaml
     path: ./ruleset/Claude_No_Resolve.yaml
     behavior: classical
     interval: 86400
     type: http
+    proxy: 规则更新
 
   BardAI:
-    url: https://raw.githubusercontent.com/holddyxu/clash/refs/heads/main/list/BardAI/BardAI_No_Resolve.yaml
+    url: https://raw.githubusercontent.com/raymondhudson1987/clash/main/list/BardAI/BardAI_No_Resolve.yaml
     path: ./ruleset/BardAI_No_Resolve.yaml
     behavior: classical
     interval: 86400
     type: http
+    proxy: 规则更新
 
   Epic:
-    url: https://raw.githubusercontent.com/holddyxu/clash/refs/heads/main/list/Epic/Epic_No_Resolve.yaml
+    url: https://raw.githubusercontent.com/raymondhudson1987/clash/main/list/Epic/Epic_No_Resolve.yaml
     path: ./ruleset/Epic_No_Resolve.yaml
     behavior: classical
     interval: 86400
     type: http
+    proxy: 规则更新
   Origin:
-    url: https://raw.githubusercontent.com/holddyxu/clash/refs/heads/main/list/Origin/Origin_No_Resolve.yaml
+    url: https://raw.githubusercontent.com/raymondhudson1987/clash/main/list/Origin/Origin_No_Resolve.yaml
     path: ./ruleset/Origin_No_Resolve.yaml
     behavior: classical
     interval: 86400
     type: http
+    proxy: 规则更新
   Sony:
-    url: https://raw.githubusercontent.com/holddyxu/clash/refs/heads/main/list/Sony/Sony_No_Resolve.yaml
+    url: https://raw.githubusercontent.com/raymondhudson1987/clash/main/list/Sony/Sony_No_Resolve.yaml
     path: ./ruleset/Sony_No_Resolve.yaml
     behavior: classical
     interval: 86400
     type: http
+    proxy: 规则更新
   Steam:
-    url: https://raw.githubusercontent.com/holddyxu/clash/refs/heads/main/list/Steam/Steam_No_Resolve.yaml
+    url: https://raw.githubusercontent.com/raymondhudson1987/clash/main/list/Steam/Steam_No_Resolve.yaml
     path: ./ruleset/Steam_No_Resolve.yaml
     behavior: classical
     interval: 86400
     type: http
+    proxy: 规则更新
   Nintendo:
-    url: https://raw.githubusercontent.com/holddyxu/clash/refs/heads/main/list/Nintendo/Nintendo_No_Resolve.yaml
+    url: https://raw.githubusercontent.com/raymondhudson1987/clash/main/list/Nintendo/Nintendo_No_Resolve.yaml
     path: ./ruleset/Nintendo_No_Resolve.yaml
     behavior: classical
     interval: 86400
     type: http
+    proxy: 规则更新
   YouTube:
-    url: https://raw.githubusercontent.com/holddyxu/clash/refs/heads/main/list/YouTube/YouTube_No_Resolve.yaml
+    url: https://raw.githubusercontent.com/raymondhudson1987/clash/main/list/YouTube/YouTube_No_Resolve.yaml
     path: ./ruleset/YouTube_No_Resolve.yaml
     behavior: classical
     interval: 86400
     type: http
+    proxy: 规则更新
   Netflix:
-    url: https://raw.githubusercontent.com/holddyxu/clash/refs/heads/main/list/Netflix/Netflix_No_Resolve.yaml
+    url: https://raw.githubusercontent.com/raymondhudson1987/clash/main/list/Netflix/Netflix_No_Resolve.yaml
     path: ./ruleset/Netflix_No_Resolve.yaml
     behavior: classical
     interval: 86400
     type: http
+    proxy: 规则更新
   Bahamut:
-    url: https://raw.githubusercontent.com/holddyxu/clash/refs/heads/main/list/Bahamut/Bahamut_No_Resolve.yaml
+    url: https://raw.githubusercontent.com/raymondhudson1987/clash/main/list/Bahamut/Bahamut_No_Resolve.yaml
     path: ./ruleset/Bahamut_No_Resolve.yaml
     behavior: classical
     interval: 86400
     type: http
+    proxy: 规则更新
   BiliBiliIntl:
-    url: https://raw.githubusercontent.com/holddyxu/clash/refs/heads/main/list/BiliBiliIntl/BiliBiliIntl_No_Resolve.yaml
+    url: https://raw.githubusercontent.com/raymondhudson1987/clash/main/list/BiliBiliIntl/BiliBiliIntl_No_Resolve.yaml
     path: ./ruleset/BiliBiliIntl_No_Resolve.yaml
     behavior: classical
     interval: 86400
     type: http
+    proxy: 规则更新
   ChinaMedia:
-    url: https://raw.githubusercontent.com/holddyxu/clash/refs/heads/main/list/ChinaMedia/ChinaMedia_No_Resolve.yaml
+    url: https://raw.githubusercontent.com/raymondhudson1987/clash/main/list/ChinaMedia/ChinaMedia_No_Resolve.yaml
     path: ./ruleset/ChinaMedia_No_Resolve.yaml
     behavior: classical
     interval: 86400
     type: http
+    proxy: 规则更新
 
   ProxyGFW:
-    url: https://raw.githubusercontent.com/holddyxu/clash/refs/heads/main/list/Proxy/Proxy_No_Resolve.yaml
+    url: https://raw.githubusercontent.com/raymondhudson1987/clash/main/list/Proxy/Proxy_No_Resolve.yaml
     path: ./ruleset/Proxy_No_Resolve.yaml
     behavior: classical
     interval: 86400
     type: http
+    proxy: 规则更新
   ProxyGFWDomain:
-    url: https://raw.githubusercontent.com/holddyxu/clash/refs/heads/main/list/Proxy/Proxy_Domain.yaml
+    url: https://raw.githubusercontent.com/raymondhudson1987/clash/main/list/Proxy/Proxy_Domain.yaml
     path: ./ruleset/ProxyGFW_Domain.yaml
     behavior: domain
     interval: 86400
     type: http
+    proxy: 规则更新
 
   ChinaMax:
-    url: https://raw.githubusercontent.com/holddyxu/clash/refs/heads/main/list/ChinaMaxNoMedia/ChinaMaxNoMedia_No_Resolve.yaml
+    url: https://raw.githubusercontent.com/raymondhudson1987/clash/main/list/ChinaMaxNoMedia/ChinaMaxNoMedia_No_Resolve.yaml
     path: ./ruleset/ChinaMaxNoMedia_No_Resolve.yaml
     behavior: classical
     interval: 86400
     type: http
+    proxy: 规则更新
   ChinaMaxDomain:
-    url: https://raw.githubusercontent.com/holddyxu/clash/refs/heads/main/list/ChinaMaxNoMedia/ChinaMaxNoMedia_Domain.yaml
+    url: https://raw.githubusercontent.com/raymondhudson1987/clash/main/list/ChinaMaxNoMedia/ChinaMaxNoMedia_Domain.yaml
     path: ./ruleset/ChinaMaxNoMedia_Domain.yaml
     behavior: domain
     interval: 86400
     type: http
+    proxy: 规则更新
   ChinaMaxIP:
-    url: https://raw.githubusercontent.com/holddyxu/clash/refs/heads/main/list/ChinaMaxNoMedia/ChinaMaxNoMedia_IP.yaml
-    path: ./ruleset/ChinaMaxNoMedia_IP.yaml
-    behavior: ipcidr
+    # 上游 _IP.yaml 包含裸 ASN，不能作为 ipcidr 加载。
+    # 最后使用完整 classical 集合兜底，保留 ASN 与可触发解析的 IP 规则。
+    url: https://raw.githubusercontent.com/raymondhudson1987/clash/main/list/ChinaMaxNoMedia/ChinaMaxNoMedia.yaml
+    path: ./ruleset/ChinaMaxNoMedia_Fallback.yaml
+    behavior: classical
     interval: 86400
     type: http
+    proxy: 规则更新
 
   Download:
-    url: https://raw.githubusercontent.com/holddyxu/clash/refs/heads/main/list/Download/Download_No_Resolve.yaml
+    url: https://raw.githubusercontent.com/raymondhudson1987/clash/main/list/Download/Download_No_Resolve.yaml
     path: ./ruleset/Download_No_Resolve.yaml
     behavior: classical
     interval: 86400
     type: http
+    proxy: 规则更新
   PirateTrackers:
-    url: https://raw.githubusercontent.com/holddyxu/clash/refs/heads/main/list/PrivateTracker/PrivateTracker_No_Resolve.yaml
+    url: https://raw.githubusercontent.com/raymondhudson1987/clash/main/list/PrivateTracker/PrivateTracker_No_Resolve.yaml
     path: ./ruleset/PirateTrackers_No_Resolve.yaml
     behavior: classical
     interval: 86400
     type: http
+    proxy: 规则更新
 
   JAV:
-    url: https://raw.githubusercontent.com/holddyxu/clash/refs/heads/main/list/JAV/JAV.yaml
+    url: https://raw.githubusercontent.com/raymondhudson1987/clash/main/custom/JAV.yaml
     path: ./ruleset/JAV.yaml
     behavior: classical
     interval: 86400
     type: http
+    proxy: 规则更新
 
   ImgHostAbroad:
-    url: https://raw.githubusercontent.com/holddyxu/clash/refs/heads/main/list/ImgHostAbroad/ImgHostAbroad.yaml
+    url: https://raw.githubusercontent.com/raymondhudson1987/clash/main/custom/ImgHostAbroad.yaml
     path: ./ruleset/ImgHostAbroad.yaml
     behavior: classical
     interval: 86400
     type: http
+    proxy: 规则更新
 
   Developer:
-    url: https://raw.githubusercontent.com/holddyxu/clash/refs/heads/main/list/Developer/Developer_No_Resolve.yaml
+    url: https://raw.githubusercontent.com/raymondhudson1987/clash/main/list/Developer/Developer_No_Resolve.yaml
     path: ./ruleset/Developer_No_Resolve.yaml
     behavior: classical
     interval: 86400
     type: http
+    proxy: 规则更新
 
   GitHub:
-    url: https://raw.githubusercontent.com/holddyxu/clash/refs/heads/main/list/GitHub/GitHub_No_Resolve.yaml
+    url: https://raw.githubusercontent.com/raymondhudson1987/clash/main/list/GitHub/GitHub_No_Resolve.yaml
     path: ./ruleset/GitHub_No_Resolve.yaml
     behavior: classical
     interval: 86400
     type: http
+    proxy: 规则更新
 
   YouTubeMusic:
-    url: https://raw.githubusercontent.com/holddyxu/clash/refs/heads/main/list/YouTubeMusic/YouTubeMusic_No_Resolve.yaml
+    url: https://raw.githubusercontent.com/raymondhudson1987/clash/main/list/YouTubeMusic/YouTubeMusic_No_Resolve.yaml
     path: ./ruleset/YouTubeMusic_No_Resolve.yaml
     behavior: classical
     interval: 86400
     type: http
+    proxy: 规则更新
 
   GoogleFCM:
-    url: https://raw.githubusercontent.com/holddyxu/clash/refs/heads/main/list/GoogleFCM/GoogleFCM_No_Resolve.yaml
+    url: https://raw.githubusercontent.com/raymondhudson1987/clash/main/list/GoogleFCM/GoogleFCM_No_Resolve.yaml
     path: ./ruleset/GoogleFCM.yaml
     behavior: classical
     interval: 86400
     type: http
+    proxy: 规则更新
 
   TalkTone:
-    url: https://raw.githubusercontent.com/holddyxu/clash/refs/heads/main/list/TalkTone/TalkTone_No_Resolve.yaml
+    url: https://raw.githubusercontent.com/raymondhudson1987/clash/main/custom/TalkTone.yaml
     path: ./ruleset/TalkTone.yaml
     behavior: classical
     interval: 86400
     type: http
+    proxy: 规则更新
 
   TalkToneNoAds:
-    url: https://raw.githubusercontent.com/holddyxu/clash/refs/heads/main/list/TalkToneNoAds/TalkToneNoAds_No_Resolve.yaml
+    url: https://raw.githubusercontent.com/raymondhudson1987/clash/main/custom/TalkToneNoAds.yaml
     path: ./ruleset/TalkToneNoAds.yaml
     behavior: classical
     interval: 86400
     type: http
+    proxy: 规则更新
 
   Check:
-    url: https://raw.githubusercontent.com/holddyxu/clash/refs/heads/main/list/Check/Check.yaml
+    url: https://raw.githubusercontent.com/raymondhudson1987/clash/main/custom/Check.yaml
     path: ./ruleset/Check.yaml
     behavior: classical
     interval: 86400
     type: http
+    proxy: 规则更新
 
   ManualAdjust:
-    url: https://raw.githubusercontent.com/holddyxu/clash/refs/heads/main/list/ManualAdjust/ManualAdjust.yaml
+    url: https://raw.githubusercontent.com/raymondhudson1987/clash/main/custom/ManualAdjust.yaml
     path: ./ruleset/ManualAdjust.yaml
     behavior: classical
     interval: 86400
     type: http
+    proxy: 规则更新
 
   Nvidia:
-    url: https://raw.githubusercontent.com/holddyxu/clash/refs/heads/main/list/Nvidia/Nvidia.yaml
+    url: https://raw.githubusercontent.com/raymondhudson1987/clash/main/list/Nvidia/Nvidia.yaml
     path: ./ruleset/Nvidia.yaml
     behavior: classical
     interval: 86400
     type: http
+    proxy: 规则更新
 
 # ==========================================
 # 规则
 # ==========================================
+# 私网 > 个人例外 > 业务分类 > 国内 IP > 兜底
 rules:
-  - "RULE-SET,ChinaMedia,国内媒体"
-  - "RULE-SET,ChinaMaxDomain,全球直连"
-  - "RULE-SET,ChinaMax,全球直连"
-  - "RULE-SET,ChinaMaxIP,全球直连"
-  - "RULE-SET,Download,全球直连"
-  - "RULE-SET,PirateTrackers,全球直连"
-  - "RULE-SET,SteamCN,全球直连"
+  - "IP-CIDR,192.168.5.13/32,DIRECT,no-resolve"
+  - "IP-CIDR,192.168.5.33/32,DIRECT,no-resolve"
+  - "IP-CIDR,192.168.0.0/16,DIRECT,no-resolve"
+  - "IP-CIDR,10.0.0.0/8,DIRECT,no-resolve"
+  - "IP-CIDR,172.16.0.0/12,DIRECT,no-resolve"
+  - "IP-CIDR6,fc00::/7,DIRECT,no-resolve"
+  - "RULE-SET,PersonalDirect,DIRECT"
+  - "RULE-SET,ManualAdjust,节点选择"
+  - "RULE-SET,ChinaMedia,DIRECT"
+  - "RULE-SET,Download,DIRECT"
+  - "RULE-SET,PirateTrackers,DIRECT"
+  - "RULE-SET,SteamCN,DIRECT"
   - "RULE-SET,AdvertisingDomain,广告拦截"
   - "RULE-SET,Advertising,广告拦截"
   - "RULE-SET,TalkToneNoAds,广告拦截"
   - "RULE-SET,Nvidia,节点选择"
-  - "RULE-SET,Google,谷歌"
   - "RULE-SET,GoogleFCM,谷歌"
   - "RULE-SET,OpenAI,OpenAI"
   - "RULE-SET,Copilot,OpenAI"
   - "RULE-SET,BardAI,OpenAI"
   - "RULE-SET,Claude,极速美国"
+  - "RULE-SET,ChinaMaxDomain,DIRECT"
   - "RULE-SET,OneDrive,微软云盘"
   - "RULE-SET,Microsoft,微软服务"
   - "RULE-SET,Apple,苹果服务"
@@ -650,6 +707,7 @@ rules:
   - "RULE-SET,Nintendo,游戏平台"
   - "RULE-SET,YouTube,油管视频"
   - "RULE-SET,YouTubeMusic,油管视频"
+  - "RULE-SET,Google,谷歌"
   - "RULE-SET,Netflix,奈飞视频"
   - "RULE-SET,Bahamut,巴哈姆特"
   - "RULE-SET,BiliBiliIntl,哔哩哔哩"
@@ -657,7 +715,7 @@ rules:
   - "RULE-SET,GitHub,Developer"
   - "RULE-SET,ImgHostAbroad,节点选择"
   - "RULE-SET,JAV,极速日本"
-  - "RULE-SET,ManualAdjust,节点选择"
   - "RULE-SET,ProxyGFW,节点选择"
   - "RULE-SET,ProxyGFWDomain,节点选择"
+  - "RULE-SET,ChinaMaxIP,DIRECT"
   - "MATCH,漏网之鱼"
